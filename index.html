@@ -281,10 +281,10 @@
     </div>
 
     <script>
-        function startSystem() {
-            // Play local audio
+ function startSystem() {
+            // Play local audio immediately on user click to satisfy mobile autoplay policies
             const audio = document.getElementById('bg-audio');
-            audio.play().catch(e => console.log("User interaction required to play audio"));
+            audio.play().catch(e => console.log("Audio play blocked:", e));
             
             document.getElementById('audio-splash').style.display = 'none';
             const bootScr = document.getElementById('boot-screen');
