@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOFIE_OS v4.4 // MAIN_FRAME</title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'VT323', monospace;
+            background-color: #020005;
+            color: #00ffcc;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            font-size: 22px;
+            user-select: none;
+        }
+
+        /* MATRIX / BINARY RAIN BACKGROUND */
+        .matrix-bg {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 1; opacity: 0.15;
+            font-size: 16px; color: #ff007f; overflow: hidden;
+            display: flex; justify-content: space-around;
+        }
+        .matrix-column { writing-mode: vertical-lr; animation: fall linear infinite; }
+
+        /* CRT SCANLINES & VIGNETTE */
+        .crt::before {
+            content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.04));
+            z-index: 5; background-size: 100% 3px, 4px 100%; pointer-events: none;
+        }
+
+        /* INITIAL AUDIO SPLASH SCREEN */
+        #audio-splash {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(2, 0, 5, 0.98); z-index: 100;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            text-align: center; padding: 20px;
+        }
+
+        /* MAIN HUD WINDOW */
+        .window {
+            border: 2px solid #00ffcc; background: rgba(8, 2, 20, 0.92);
+            width: 92%; max-width: 820px;
+            box-shadow: 0 0 40px rgba(0, 255, 204, 0.25), inset 0 0 30px rgba(255, 0, 127, 0.15);
+            position: relative; z-index: 10; border-radius: 6px;
+        }
+        .title-bar {
+            background: linear-gradient(90deg, #ff007f, #7928ca); color: #fff; padding: 10px 15px;
+            display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 20px;
+            border-bottom: 2px solid #00ffcc;
+        }
+        .content { padding: 30px; position: relative; min-height: 420px; }
+
+        /* BOOT SCREEN */
+        #boot-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #020005; z-index: 50; display: none; flex-direction: column;
+            justify-content: center; align-items: flex-start; padding: 40px; color: #00ffcc;
+        }
+        #loading-bar-container { width: 100%; max-width: 400px; border: 2px solid #ff007f; margin-top: 15px; height: 22px; background: #110022; }
+        #loading-bar { width: 0%; height: 100%; background: #00ffcc; box-shadow: 0 0 12px #00ffcc; transition: width 0.1s linear; }
+
+        /* TAB SYSTEM */
+        .tab-menu { display: none; gap: 8px; margin-bottom: 20px; border-bottom: 1px dashed #ff007f; padding-bottom: 10px; flex-wrap: wrap; }
+        .tab-btn {
+            background: transparent; border: 1px solid #ff007f; color: #ff007f; padding: 5px 12px;
+            font-family: 'VT323', monospace; font-size: 19px; cursor: pointer; transition: all 0.2s;
+        }
+        .tab-btn.active, .tab-btn:hover { background: #ff007f; color: #fff; box-shadow: 0 0 10px #ff007f; }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* TERMINAL / INPUT */
+        .terminal-input-area { display: flex; align-items: center; margin-top: 20px; font-size: 24px; }
+        .prompt { color: #ff007f; margin-right: 10px; text-shadow: 0 0 5px #ff007f; }
+        input[type="text"] {
+            background: transparent; border: none; border-bottom: 2px solid #00ffcc;
+            color: #fff; font-family: 'VT323', monospace; font-size: 24px; outline: none;
+            width: 180px; text-transform: lowercase; letter-spacing: 1px;
+        }
+
+        /* RETRO BUTTONS */
+        .retro-btn {
+            background: transparent; border: 2px solid #00ffcc; color: #00ffcc;
+            padding: 10px 22px; font-family: 'VT323', monospace; font-size: 22px; cursor: pointer;
+            box-shadow: 3px 3px 0px #ff007f; transition: all 0.1s; margin-top: 10px;
+        }
+        .retro-btn:hover { background: #00ffcc; color: #020005; box-shadow: 5px 5px 0px #ff007f; transform: translate(-2px, -2px); }
+        .retro-btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0px #ff007f; }
+
+        /* DODGING NO BUTTON */
+        #no-btn {
+            position: relative;
+            transition: transform 0.08s ease-out;
+            border-color: #ff007f;
+            color: #ff007f;
+            box-shadow: 3px 3px 0px #00ffcc;
+        }
+
+        /* FLOATING ASCII PARTICLES */
+        .ascii-particle { position: absolute; color: #ff007f; font-size: 20px; z-index: 20; text-shadow: 0 0 10px #ff007f; animation: floatUp linear forwards; pointer-events: none; }
+        @keyframes floatUp {
+            0% { transform: translateY(105vh) scale(0.6); opacity: 1; }
+            100% { transform: translateY(-10vh) scale(1.4); opacity: 0; }
+        }
+
+        /* STATUS BAR */
+        .status-bar {
+            margin-top: 20px; font-size: 18px; color: #7f8c8d; border-top: 1px solid #221133;
+            padding-top: 8px; display: flex; justify-content: space-between;
+        }
+        
+        /* ASCII ART BOX */
+        .ascii-art {
+            color: #ff77a9;
+            font-size: 14px;
+            line-height: 1;
+            white-space: pre;
+            text-shadow: 0 0 8px rgba(255,119,169,0.5);
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body class="crt">
+
+    <!-- AUDIO SPLASH SCREEN -->
+    <div id="audio-splash">
+        <div class="ascii-art" style="color: #ff007f; margin-bottom: 20px;">
+   ___ ___ _____ _  _ 
+  | _ \ __|_   _| || |
+  |  _/ _|  | | | __ |
+  |_| |___| |_| |_||_|
+        </div>
+        <h1 style="color: #00ffcc; font-size: 32px; margin-bottom: 15px; text-shadow: 2px 2px #ff007f;">INITIALIZING AUDIO STREAM...</h1>
+        <p style="color: #aae3f9; font-size: 22px; margin-bottom: 25px;">[CLICK BUTTON BELOW TO BOOT SYSTEM AND PLAY MUSIC]</p>
+        <button class="retro-btn" onclick="startSystem()">[ INITIALIZE OS ]</button>
+    </div>
+
+    <!-- EMBEDDED YOUTUBE IFRAME WITH JS API -->
+    <div id="youtube-player-container" style="display:none;">
+        <iframe id="yt-player" width="300" height="200" src="https://www.youtube.com/embed/k7fihig4u0Y?enablejsapi=1&autoplay=1&loop=1&playlist=k7fihig4u0Y" frameborder="0" allow="autoplay"></iframe>
+    </div>
+
+    <!-- BACKGROUND CODE EFFECT -->
+    <div class="matrix-bg" id="matrix"></div>
+
+    <!-- BOOT SEQUENCE SCREEN -->
+    <div id="boot-screen">
+        <div style="color: #ff007f; font-size: 28px; margin-bottom: 5px;">[INITIALIZING KERNEL...]</div>
+        <div class="boot-text" id="boot-log">Allocating ASCII buffers...</div>
+        <div id="loading-bar-container">
+            <div id="loading-bar"></div>
+        </div>
+    </div>
+
+    <!-- MAIN WINDOW INTERFACE -->
+    <div class="window" id="main-window" style="display: none;">
+        <div class="title-bar">
+            <span>SOFIE_OS // SECURE_VAULT_v4.4</span>
+            <div class="title-controls">
+                <span>[ _ ]</span><span>[ 🗖 ]</span><span>[ X ]</span>
+            </div>
+        </div>
+        
+        <div class="content">
+            <!-- TAB NAVIGATION -->
+            <div class="tab-menu" id="tab-menu">
+                <button class="tab-btn active" onclick="switchTab('home')">01. DECRYPT</button>
+                <button class="tab-btn" onclick="switchTab('reasons')">02. LOGS</button>
+                <button class="tab-btn" onclick="switchTab('lovecheck')">03. OVERRIDE</button>
+                <button class="tab-btn" onclick="switchTab('compliments')">04. MEMES</button>
+                <button class="tab-btn" onclick="switchTab('minigame')">05. VAULT</button>
+            </div>
+
+            <!-- TAB 1: HOME / LOGIN -->
+            <div id="tab-home" class="tab-content active">
+                <div class="ascii-art">
+  /---\  /---\  /---\  /---\  /---\
+ | S  || o  || f  || i  || e   |
+  \---/  \---/  \---/  \---/  \---/
+                </div>
+                <div style="font-size: 24px; color: #ff77a9; margin-bottom: 10px;">
+                    > SYSTEM ALERT: Encrypted transmission found.
+                </div>
+                <p style="color: #aae3f9; margin-bottom: 25px; font-size: 22px;">
+                    To unlock core system files and bypass security, please enter root user ID:
+                </p>
+                <div class="terminal-input-area">
+                    <span class="prompt">root@love:~$</span>
+                    <span>enter name: </span>
+                    <input type="text" id="password-input" autocomplete="off" spellcheck="false">
+                </div>
+                <div id="error-msg" style="color: #ff007f; margin-top: 15px; display: none;">ACCESS DENIED. Try typing "nigg...?"...</div>
+            </div>
+
+            <!-- TAB 2: WHY SOFIE -->
+            <div id="tab-reasons" class="tab-content">
+                <h2 style="color: #ff007f; font-size: 28px; margin-bottom: 15px; text-shadow: 2px 2px #00ffcc;">// SYSTEM DIAGNOSTICS: </h2>
+                <div class="ascii-art">
+   .---.
+  /     \
+ | () () |
+  \  ^  /
+   |||||
+   |||||
+                </div>
+                <ul style="list-style: none; line-height: 1.8; font-size: 22px; color: #aae3f9;">
+                    <li>[+] Most beautiful woman accessed the website</li>
+                    <li>[+] System sending 1 million kisses.</li>
+                    <li>[+] Jarvis... send 400 bunnies to user named "niggita"</li>
+                    <li>[+] JARVIS: SIR YES SIR</li>
+                </ul>
+            </div>
+
+            <!-- TAB 3: THE COMEDIC LOVE CHECKER -->
+            <div id="tab-lovecheck" class="tab-content" style="text-align: center;">
+                <h2 style="color: #ff007f; font-size: 28px; margin-bottom: 10px; text-shadow: 2px 2px #00ffcc;">// SECURITY PROTOCOL: INTEGRITY CHECK</h2>
+                <div class="ascii-art" style="text-align: center;">
+      ,ad8888ba,    
+     d8"'    `"8b   
+    d8'        `8b  
+    88          88  
+    Y8,        ,8P  
+     Y8a.    .a8P   
+      `"Y8888Y"'    
+                </div>
+                <p style="color: #fff; font-size: 25px; margin-bottom: 25px;" id="question-text">
+                    Do you love me back? (Choose wisely)
+                </p>
+                <div id="love-buttons" style="display: flex; justify-content: center; gap: 30px; align-items: center; min-height: 100px; position: relative;">
+                    <button class="retro-btn" id="yes-btn" onclick="handleYesClick()">[ YES ABSOLUTELY ]</button>
+                    <button class="retro-btn" id="no-btn" onclick="dodgeButton()">[ NO ]</button>
+                </div>
+            </div>
+
+            <!-- TAB 4: MEMES / JOKES -->
+            <div id="tab-compliments" class="tab-content" style="text-align: center;">
+                <h2 style="color: #ff007f; font-size: 28px; margin-bottom: 15px; text-shadow: 2px 2px #00ffcc;">// SYSTEM_LOG: REACTION MEMES</h2>
+                <div class="ascii-art" style="text-align: center;">
+   (•_•)
+   ( •_•)>⌐■-■
+   (⌐■_■)
+                </div>
+                <p id="meme-display" style="color: #aae3f9; font-size: 22px; line-height: 1.6; margin-bottom: 20px; min-height: 60px;">
+                    > "(dead picture of your body in codm)."
+                </p>
+                <button class="retro-btn" onclick="nextMeme()">[ GENERATE NEW QUOTE ]</button>
+            </div>
+
+            <!-- TAB 5: SURPRISE VAULT -->
+            <div id="tab-minigame" class="tab-content" style="text-align: center;">
+                <h2 style="color: #ff007f; font-size: 30px; margin-bottom: 15px;">CORE VAULT UNLOCKED</h2>
+                <div class="ascii-art" style="text-align: center;">
+      _.-'''''-._
+    .'  _     _  '.
+   /   (o)   (o)   \
+  |                 |
+  |  \           /  |
+   \  '._______.'  /
+    '.___________.'
+                </div>
+                <p style="color: #fff; font-size: 24px; line-height: 1.5; margin-bottom: 20px;">
+                    I love you so so so so so so so so so so much (nikki refrence get it)
+                </p>
+                <button class="retro-btn" onclick="triggerAsciiBurst()">[ KEEP CLICKING FOR LOVE <3 ]</button>
+            </div>
+
+            <div class="status-bar">
+                <span id="status-text">STATUS: WAITING FOR AUTHENTICATION</span>
+                <span>SECURE CONNECTION [OK]</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOAD YOUTUBE IFRAME API -->
+    <script src="https://www.youtube.com/iframe_api"></script>
+
+    <script>
+        let player;
+
+        window.onYouTubeIframeAPIReady = function() {
+            player = new YT.Player('yt-player', {
+                events: {
+                    'onReady': (event) => {}
+                }
+            });
+        };
+
+        function startSystem() {
+            if (player && typeof player.playVideo === 'function') {
+                player.playVideo();
+            } else {
+                const iframe = document.getElementById('yt-player');
+                iframe.src = "https://www.youtube.com/embed/k7fihig4u0Y?autoplay=1&loop=1&playlist=k7fihig4u0Y";
+            }
+            
+            document.getElementById('audio-splash').style.display = 'none';
+            const bootScr = document.getElementById('boot-screen');
+            bootScr.style.display = 'flex';
+
+            let loadProgress = 0;
+            const loadingBar = document.getElementById('loading-bar');
+            const bootLog = document.getElementById('boot-log');
+            const mainWindow = document.getElementById('main-window');
+
+            const logs = [
+                "Mounting ASCII filesystems...",
+                "Loading sentiment weights...",
+                "Establishing connection to target...",
+                "All systems operational."
+            ];
+
+            let bootInterval = setInterval(() => {
+                loadProgress += Math.floor(Math.random() * 18) + 8;
+                if (loadProgress >= 100) loadProgress = 100;
+                loadingBar.style.width = loadProgress + '%';
+                
+                let logIndex = Math.floor((loadProgress / 100) * logs.length);
+                bootLog.innerText = logs[Math.min(logIndex, logs.length - 1)];
+
+                if (loadProgress === 100) {
+                    clearInterval(bootInterval);
+                    setTimeout(() => {
+                        bootScr.style.opacity = '0';
+                        setTimeout(() => {
+                            bootScr.style.display = 'none';
+                            mainWindow.style.display = 'block';
+                            document.getElementById('password-input').focus();
+                        }, 400);
+                    }, 500);
+                }
+            }, 220);
+        }
+
+        // MATRIX BACKGROUND
+        const matrixContainer = document.getElementById('matrix');
+        const chars = "SOFIE<3010198276*#@!LOVE[]/\\";
+        for (let i = 0; i < 18; i++) {
+            const col = document.createElement('div');
+            col.classList.add('matrix-column');
+            col.style.animationDuration = (Math.random() * 4 + 3) + 's';
+            col.style.animationDelay = (Math.random() * 2) + 's';
+            let text = "";
+            for (let j = 0; j < 25; j++) {
+                text += chars.charAt(Math.floor(Math.random() * chars.length)) + "<br>";
+            }
+            col.innerHTML = text;
+            matrixContainer.appendChild(col);
+        }
+
+        // PASSWORD & TABS
+        const passInput = document.getElementById('password-input');
+        passInput.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                if (passInput.value.toLowerCase() === 'niggita') {
+                    document.getElementById('tab-menu').style.display = 'flex';
+                    switchTab('minigame');
+                    document.getElementById('status-text').innerText = "STATUS: FULL ACCESS GRANTED";
+                    triggerAsciiRain();
+                } else {
+                    document.getElementById('error-msg').style.display = 'block';
+                    passInput.value = '';
+                    mainWindow.style.transform = "translate(4px, -4px)";
+                    setTimeout(() => mainWindow.style.transform = "translate(0, 0)", 100);
+                }
+            }
+        });
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById('tab-' + tabId).classList.add('active');
+            event && event.target.classList.add('active');
+        }
+
+        // DODGING "NO" BUTTON SCRIPT (ON CLICK ONLY)
+        function dodgeButton() {
+            const noBtn = document.getElementById('no-btn');
+            const randomX = (Math.random() * 260) - 130;
+            const randomY = (Math.random() * 140) - 70;
+            noBtn.style.transform = `translate(${randomX}px, ${randomY}px)`;
+        }
+
+        function handleYesClick() {
+            document.getElementById('question-text').innerText = "CORRECT ANSWER DETECTED! ACCESS OVERWHELMINGLY GRANTED <3";
+            document.getElementById('love-buttons').innerHTML = '<div style="color: #00ffcc; font-size: 28px; text-shadow: 0 0 10px #00ffcc;">[ SYSTEM MESSAGE: FEET PICTURES?? ]</div>';
+            triggerAsciiBurst();
+        }
+
+        // MEMES / QUOTES CYCLER
+        const memes = [
+            "> \"(dead picture of your body in codm).\"",
+            "> Error 404:  moment of aws not being funny not found.",
+            "> 67.",
+            "> choo choo feet train? :)"
+        ];
+        function nextMeme() {
+            const randomMeme = memes[Math.floor(Math.random() * memes.length)];
+            document.getElementById('meme-display').innerText = randomMeme;
+        }
+
+        // ASCII PARTICLES RAIN
+        const asciiSymbols = ['<3', '[+]', '#*#', '(^_^)', '///', '===', '{v}'];
+        function triggerAsciiRain() {
+            setInterval(() => {
+                const p = document.createElement('div');
+                p.classList.add('ascii-particle');
+                p.innerText = asciiSymbols[Math.floor(Math.random() * asciiSymbols.length)];
+                p.style.left = Math.random() * 95 + 'vw';
+                p.style.animationDuration = (Math.random() * 2.5 + 2) + 's';
+                document.body.appendChild(p);
+                setTimeout(() => p.remove(), 5000);
+            }, 180);
+        }
+
+        function triggerAsciiBurst() {
+            for (let i = 0; i < 25; i++) {
+                setTimeout(() => {
+                    const p = document.createElement('div');
+                    p.classList.add('ascii-particle');
+                    p.innerText = asciiSymbols[Math.floor(Math.random() * asciiSymbols.length)];
+                    p.style.left = (50 + (Math.random() * 40 - 20)) + 'vw';
+                    p.style.animationDuration = (Math.random() * 1.5 + 1) + 's';
+                    document.body.appendChild(p);
+                    setTimeout(() => p.remove(), 3000);
+                }, i * 40);
+            }
+        }
+    </script>
+</body>
+</html>
