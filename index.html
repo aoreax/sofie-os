@@ -135,9 +135,9 @@
     <!-- AUDIO SPLASH SCREEN -->
     <div id="audio-splash">
         <div class="ascii-art" style="color: #ff007f; margin-bottom: 20px;">
-   ___ ___ _____ _  _ 
+   ___ ___ _____ _  _  
   | _ \ __|_   _| || |
-  |  _/ _|  | | | __ |
+  |  _| _|  | | | __ |
   |_| |___| |_| |_||_|
         </div>
         <h1 style="color: #00ffcc; font-size: 32px; margin-bottom: 15px; text-shadow: 2px 2px #ff007f;">INITIALIZING AUDIO STREAM...</h1>
@@ -145,10 +145,11 @@
         <button class="retro-btn" onclick="startSystem()">[ INITIALIZE OS ]</button>
     </div>
 
-    <!-- EMBEDDED YOUTUBE IFRAME WITH JS API -->
-    <div id="youtube-player-container" style="display:none;">
-        <iframe id="yt-player" width="300" height="200" src="https://www.youtube.com/embed/k7fihig4u0Y?enablejsapi=1&autoplay=1&loop=1&playlist=k7fihig4u0Y" frameborder="0" allow="autoplay"></iframe>
-    </div>
+    <!-- LOCAL AUDIO FILE -->
+    <audio id="bg-audio" loop>
+        <source src="song.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
 
     <!-- BACKGROUND CODE EFFECT -->
     <div class="matrix-bg" id="matrix"></div>
@@ -184,9 +185,9 @@
             <!-- TAB 1: HOME / LOGIN -->
             <div id="tab-home" class="tab-content active">
                 <div class="ascii-art">
-  /---\  /---\  /---\  /---\  /---\
- | S  || o  || f  || i  || e   |
-  \---/  \---/  \---/  \---/  \---/
+ /---\  /---\  /---\  /---\  /---\
+| S   || o   || f   || i   || e    |
+ \---/  \---/  \---/  \---/  \---/
                 </div>
                 <div style="font-size: 24px; color: #ff77a9; margin-bottom: 10px;">
                     > SYSTEM ALERT: Encrypted transmission found.
@@ -199,7 +200,7 @@
                     <span>enter name: </span>
                     <input type="text" id="password-input" autocomplete="off" spellcheck="false">
                 </div>
-                <div id="error-msg" style="color: #ff007f; margin-top: 15px; display: none;">ACCESS DENIED. Try typing "nigg...?"...</div>
+                <div id="error-msg" style="color: #ff007f; margin-top: 15px; display: none;">ACCESS DENIED.</div>
             </div>
 
             <!-- TAB 2: WHY SOFIE -->
@@ -216,8 +217,6 @@
                 <ul style="list-style: none; line-height: 1.8; font-size: 22px; color: #aae3f9;">
                     <li>[+] Most beautiful woman accessed the website</li>
                     <li>[+] System sending 1 million kisses.</li>
-                    <li>[+] Jarvis... send 400 bunnies to user named "niggita"</li>
-                    <li>[+] JARVIS: SIR YES SIR</li>
                 </ul>
             </div>
 
@@ -226,12 +225,12 @@
                 <h2 style="color: #ff007f; font-size: 28px; margin-bottom: 10px; text-shadow: 2px 2px #00ffcc;">// SECURITY PROTOCOL: INTEGRITY CHECK</h2>
                 <div class="ascii-art" style="text-align: center;">
       ,ad8888ba,    
-     d8"'    `"8b   
-    d8'        `8b  
-    88          88  
-    Y8,        ,8P  
-     Y8a.    .a8P   
-      `"Y8888Y"'    
+     d8"'   "8b   
+    d8'     `8b  
+    88       88  
+    Y8,     ,8P  
+     Y8a. .a8P   
+      "Y8888Y"'    
                 </div>
                 <p style="color: #fff; font-size: 25px; margin-bottom: 25px;" id="question-text">
                     Do you love me back? (Choose wisely)
@@ -269,7 +268,7 @@
     '.___________.'
                 </div>
                 <p style="color: #fff; font-size: 24px; line-height: 1.5; margin-bottom: 20px;">
-                    I love you so so so so so so so so so so much (nikki refrence get it)
+                    I love you so much!
                 </p>
                 <button class="retro-btn" onclick="triggerAsciiBurst()">[ KEEP CLICKING FOR LOVE <3 ]</button>
             </div>
@@ -281,27 +280,11 @@
         </div>
     </div>
 
-    <!-- LOAD YOUTUBE IFRAME API -->
-    <script src="https://www.youtube.com/iframe_api"></script>
-
     <script>
-        let player;
-
-        window.onYouTubeIframeAPIReady = function() {
-            player = new YT.Player('yt-player', {
-                events: {
-                    'onReady': (event) => {}
-                }
-            });
-        };
-
         function startSystem() {
-            if (player && typeof player.playVideo === 'function') {
-                player.playVideo();
-            } else {
-                const iframe = document.getElementById('yt-player');
-                iframe.src = "https://www.youtube.com/embed/k7fihig4u0Y?autoplay=1&loop=1&playlist=k7fihig4u0Y";
-            }
+            // Play local audio
+            const audio = document.getElementById('bg-audio');
+            audio.play().catch(e => console.log("User interaction required to play audio"));
             
             document.getElementById('audio-splash').style.display = 'none';
             const bootScr = document.getElementById('boot-screen');
@@ -369,6 +352,7 @@
                 } else {
                     document.getElementById('error-msg').style.display = 'block';
                     passInput.value = '';
+                    const mainWindow = document.getElementById('main-window');
                     mainWindow.style.transform = "translate(4px, -4px)";
                     setTimeout(() => mainWindow.style.transform = "translate(0, 0)", 100);
                 }
@@ -380,10 +364,9 @@
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
             
             document.getElementById('tab-' + tabId).classList.add('active');
-            event && event.target.classList.add('active');
+            if(event) event.target.classList.add('active');
         }
 
-        // DODGING "NO" BUTTON SCRIPT (ON CLICK ONLY)
         function dodgeButton() {
             const noBtn = document.getElementById('no-btn');
             const randomX = (Math.random() * 260) - 130;
@@ -397,10 +380,9 @@
             triggerAsciiBurst();
         }
 
-        // MEMES / QUOTES CYCLER
         const memes = [
             "> \"(dead picture of your body in codm).\"",
-            "> Error 404:  moment of aws not being funny not found.",
+            "> Error 404: moment of aws not being funny not found.",
             "> 67.",
             "> choo choo feet train? :)"
         ];
@@ -409,7 +391,6 @@
             document.getElementById('meme-display').innerText = randomMeme;
         }
 
-        // ASCII PARTICLES RAIN
         const asciiSymbols = ['<3', '[+]', '#*#', '(^_^)', '///', '===', '{v}'];
         function triggerAsciiRain() {
             setInterval(() => {
